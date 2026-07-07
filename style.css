@@ -1,0 +1,14 @@
+body {
+  background-color: #a6b1e1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  overflow: hidden;
+}
+.card {
+  height: 40rem;
+  width: 70rem;
+  background-color: #424874;
+  border-radius: 0.5rem;
+}
