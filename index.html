@@ -5,20 +5,126 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Elegant Weather App</title>
     <link rel="stylesheet" href="style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
+      integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
   </head>
   <body>
     <div class="page">
-      <div class="card-search">
-        <input type="text" placeholder="Enter a city" />
+      <div class="search-bar">
+        <input type="text" id="search-input" placeholder="Search city..." />
+        <button id="search-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
       </div>
-      <div class="card-a"></div>
-      <div class="card-b">
-        <div class="subcard"></div>
-        <div class="subcard"></div>
-        <div class="subcard"></div>
-        <div class="subcard"></div>
-        <div class="subcard"></div>
+      <div class="card">
+        <div class="container-a">
+          <h1 id="a-city"></h1>
+          <img src="assets\default.svg" alt="weather-icon" />
+        </div>
+        <div class="container-b">
+          <div class="subcontainer-a">
+            <h1 id="b-city">
+              <i class="fa-solid fa-location-dot fa-sm"></i> Mumbai
+            </h1>
+            <div class="weather-row">
+              <h1 id="b-windspeed"><i class="fa-solid fa-wind"></i></h1>
+              <h1 id="b-humidity"><i class="fa-solid fa-droplet"></i></h1>
+            </div>
+          </div>
+          <div class="subcontainer-b">
+            <h1 id="b-condition">
+              <i class="fa-solid fa-cloud-sun"></i>
+            </h1>
+            <h1 id="b-date"></h1>
+          </div>
+        </div>
       </div>
+      <div class="subcards"></div>
+      <script>
+        const conditions = {
+          0: "Clear sky", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast",
+          45: "Foggy", 48: "Foggy", 51: "Light drizzle", 53: "Moderate drizzle",
+          55: "Dense drizzle", 61: "Light rain", 63: "Moderate rain", 65: "Heavy rain",
+          71: "Light snow", 73: "Moderate snow", 75: "Heavy snow",
+          80: "Light showers", 81: "Moderate showers", 82: "Violent showers",
+          95: "Thunderstorm", 96: "Thunderstorm with hail", 99: "Thunderstorm with hail"
+        };
+        const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+        async function fetchWeather(lat, lon, city) {
+          const res = await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&timezone=auto&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&daily=temperature_2m_max,weather_code`
+          );
+          const data = await res.json();
+          const c = data.current;
+          const daily = data.daily;
+
+          document.getElementById("b-city").innerHTML =
+            `<i class="fa-solid fa-location-dot fa-sm"></i> ${city}`;
+          document.getElementById("a-city").textContent = c.temperature_2m + "°C";
+          document.getElementById("b-windspeed").innerHTML = `<i class="fa-solid fa-wind"></i> ${c.wind_speed_10m}km/h`;
+          document.getElementById("b-humidity").innerHTML = `<i class="fa-solid fa-droplet"></i> ${c.relative_humidity_2m}%`;
+          document.getElementById("b-condition").innerHTML =
+            `<i class="fa-solid fa-cloud-sun fa-sm"></i> ${conditions[c.weather_code] || "Unknown"}`;
+
+          const [y, m, d] = c.time.split("T")[0].split("-").map(Number);
+          const dt = new Date(y, m - 1, d);
+          document.getElementById("b-date").textContent =
+            `${days[dt.getDay()]}, ${dt.getDate()} ${months[dt.getMonth()]} ${dt.getFullYear()}`;
+
+          const icons = {
+            0: "fa-sun", 1: "fa-sun", 2: "fa-cloud-sun", 3: "fa-cloud",
+            45: "fa-smog", 48: "fa-smog", 51: "fa-cloud-rain", 53: "fa-cloud-rain",
+            55: "fa-cloud-rain", 61: "fa-cloud-rain", 63: "fa-cloud-rain", 65: "fa-cloud-showers-heavy",
+            71: "fa-snowflake", 73: "fa-snowflake", 75: "fa-snowflake",
+            80: "fa-cloud-showers-heavy", 81: "fa-cloud-showers-heavy", 82: "fa-cloud-showers-heavy",
+            95: "fa-cloud-bolt", 96: "fa-cloud-bolt", 99: "fa-cloud-bolt"
+          };
+          const container = document.querySelector(".subcards");
+          container.innerHTML = "";
+          for (let i = 1; i <= 6; i++) {
+            const dayDate = new Date(y, m - 1, d + i);
+            const div = document.createElement("div");
+            div.className = "sub";
+            div.innerHTML = `
+              <h2 class="sub-day">${days[dayDate.getDay()]}</h2>
+              <i class="fa-solid ${icons[daily.weather_code[i]] || "fa-cloud"} sub-icon"></i>
+              <h2 class="sub-temp">${Math.round(daily.temperature_2m_max[i])}°C</h2>
+            `;
+            container.appendChild(div);
+          }
+        }
+
+        async function searchCity(city) {
+          const geo = await fetch(
+            `https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=5`
+          );
+          const data = await geo.json();
+          if (data.results && data.results.length > 0) {
+            const { latitude, longitude, name } = data.results[0];
+            fetchWeather(latitude, longitude, name);
+          } else {
+            alert("City not found. Try a city name (e.g. Mumbai, Delhi, New York).");
+          }
+        }
+
+        document.getElementById("search-btn").addEventListener("click", () => {
+          const val = document.getElementById("search-input").value.trim();
+          if (val) searchCity(val);
+        });
+        document.getElementById("search-input").addEventListener("keydown", e => {
+          if (e.key === "Enter") {
+            const val = e.target.value.trim();
+            if (val) searchCity(val);
+          }
+        });
+
+        fetchWeather(19.076, 72.8777, "Mumbai");
+      </script>
     </div>
   </body>
 </html>
