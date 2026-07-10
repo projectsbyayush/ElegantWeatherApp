@@ -22,7 +22,7 @@
       <div class="card">
         <div class="container-a">
           <h1 id="a-city"></h1>
-          <img src="assets\default.svg" alt="weather-icon" />
+          <i class="fa-solid fa-sun" id="main-icon"></i>
         </div>
         <div class="container-b">
           <div class="subcontainer-a">
@@ -54,12 +54,22 @@
         };
         const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const icons = {
+          0: "fa-sun", 1: "fa-sun", 2: "fa-cloud-sun", 3: "fa-cloud",
+          45: "fa-smog", 48: "fa-smog", 51: "fa-cloud-rain", 53: "fa-cloud-rain",
+          55: "fa-cloud-rain", 61: "fa-cloud-rain", 63: "fa-cloud-rain", 65: "fa-cloud-showers-heavy",
+          71: "fa-snowflake", 73: "fa-snowflake", 75: "fa-snowflake",
+          80: "fa-cloud-showers-heavy", 81: "fa-cloud-showers-heavy", 82: "fa-cloud-showers-heavy",
+          95: "fa-cloud-bolt", 96: "fa-cloud-bolt", 99: "fa-cloud-bolt"
+        };
 
         async function fetchWeather(lat, lon, city) {
-          const res = await fetch(
-            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&timezone=auto&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&daily=temperature_2m_max,weather_code`
-          );
-          const data = await res.json();
+          try {
+            const res = await fetch(
+              `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&timezone=auto&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&daily=temperature_2m_max,weather_code`
+            );
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            const data = await res.json();
           const c = data.current;
           const daily = data.daily;
 
@@ -70,20 +80,14 @@
           document.getElementById("b-humidity").innerHTML = `<i class="fa-solid fa-droplet"></i> ${c.relative_humidity_2m}%`;
           document.getElementById("b-condition").innerHTML =
             `<i class="fa-solid fa-cloud-sun fa-sm"></i> ${conditions[c.weather_code] || "Unknown"}`;
+          document.getElementById("main-icon").className =
+            `fa-solid ${icons[c.weather_code] || "fa-cloud"} main-icon`;
 
           const [y, m, d] = c.time.split("T")[0].split("-").map(Number);
           const dt = new Date(y, m - 1, d);
           document.getElementById("b-date").textContent =
             `${days[dt.getDay()]}, ${dt.getDate()} ${months[dt.getMonth()]} ${dt.getFullYear()}`;
 
-          const icons = {
-            0: "fa-sun", 1: "fa-sun", 2: "fa-cloud-sun", 3: "fa-cloud",
-            45: "fa-smog", 48: "fa-smog", 51: "fa-cloud-rain", 53: "fa-cloud-rain",
-            55: "fa-cloud-rain", 61: "fa-cloud-rain", 63: "fa-cloud-rain", 65: "fa-cloud-showers-heavy",
-            71: "fa-snowflake", 73: "fa-snowflake", 75: "fa-snowflake",
-            80: "fa-cloud-showers-heavy", 81: "fa-cloud-showers-heavy", 82: "fa-cloud-showers-heavy",
-            95: "fa-cloud-bolt", 96: "fa-cloud-bolt", 99: "fa-cloud-bolt"
-          };
           const container = document.querySelector(".subcards");
           container.innerHTML = "";
           for (let i = 1; i <= 6; i++) {
@@ -96,6 +100,10 @@
               <h2 class="sub-temp">${Math.round(daily.temperature_2m_max[i])}°C</h2>
             `;
             container.appendChild(div);
+          }
+          } catch (e) {
+            console.error("Weather fetch failed:", e);
+            alert("Failed to load weather data. Check console.");
           }
         }
 
